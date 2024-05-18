@@ -1,4 +1,4 @@
-# Laporan Resmi Praktikum Sistem Operasi 2024 Modul-3
+# Laporan Resmi Praktikum Sistem Operasi 2024 Modul-4
 ## Anggota Kelompok IT 12 :
 
 - Muhammad Dzaky Ahnaf (5027231039)
