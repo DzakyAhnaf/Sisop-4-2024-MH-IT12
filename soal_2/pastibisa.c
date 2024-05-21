@@ -11,7 +11,7 @@
 #include <dirent.h>
 #include <ctype.h>
 
-const char *base_dir = "/Users/tarisa/smt-2/sisop/shift4/2";
+const char *base_dir = "/Users/tarisa/smt-2/sisop/shift4/2/relics";
 const char *log_file = "/Users/tarisa/smt-2/sisop/shift4/2/logs-fuse.log";
 const char *password = "sisopez";
 
