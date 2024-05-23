@@ -28,7 +28,7 @@ Pada soal ini, kita diharapkan membuat sebuah file system meggunakan FUSE untuk 
 
 Ketentuan:
 - Buatlah sebuah direktori dengan ketentuan seperti pada tree berikut
-```
+```yaml
 .
 ├── [nama_bebas]
 ├── relics
@@ -324,3 +324,28 @@ static int relic_create(const char *path, mode_t mode, struct fuse_file_info *fi
     return 0;
 }
 ```
+### Dokumentasi Pengerjaan
+
+1. Mengcompile lalu menjalankan program ```archeology.c``` dan memastikan folder ```bebas/``` telah ter-mount
+
+![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/28265ef2-be18-43f0-a0ec-5d924d32919a)
+
+2. Melakukan listing, isi dari direktori [nama_bebas] adalah semua relic dari relics yang telah tergabung.
+
+![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/2e48809f-76d1-49c9-9fe9-aa414c260ca7)
+
+3. Melakukan copy (dari direktori [nama_bebas] ke tujuan manapun), file yang disalin adalah file dari direktori relics yang sudah tergabung.
+
+![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/87008b7d-2eb5-41ce-98d3-365be69b1089)
+
+4. Membuat suatu file (disini dicontohkan dengan meng-copy file ```ara.jpeg```) di ```./bebas```. Lalu, pada direktori asal (direktori ```relics/```) file tersebut akan dipecah menjadi sejumlah pecahan dengan ukuran maksimum tiap pecahan adalah 10kb.
+
+![Screenshot from 2024-05-24 00-38-26](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/2e144df5-dba5-47ad-83ae-32d74999b77a)    
+![Screenshot from 2024-05-24 00-38-34](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/297f46bf-df4e-49e9-b822-ed24f31a52a1)
+
+5. Melakukan penghapusan file ```ara.jpeg``` di folder ```bebas/```. Semua pecahannya yang ada di ```relics/``` juga ikut terhapus.
+
+![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/4e538d61-03b1-46d9-b40d-856e1db7c59a)
+
+6. samba
+
