@@ -19,7 +19,6 @@ Dikerjakan oleh Nisrina Atiqah Dwiputri Ridzki (5027231075)
 Adfi merupakan seorang CEO agency creative bernama Ini Karya Kita. Ia sedang melakukan inovasi pada manajemen project photography Ini Karya Kita. Salah satu ide yang dia kembangkan adalah tentang pengelolaan foto project dalam sistem arsip Ini Karya Kita. Dalam membangun sistem ini, Adfi tidak bisa melakukannya sendirian, dia perlu bantuan mahasiswa Departemen Teknologi Informasi angkatan 2023 untuk membahas konsep baru yang akan mengubah project fotografinya lebih menarik untuk dilihat. Adfi telah menyiapkan portofolio hasil project fotonya yang bisa didownload dan diakses di www.inikaryakita.id . Silahkan eksplorasi web Ini Karya Kita dan temukan halaman untuk bisa mendownload projectnya. Setelah kalian download terdapat folder gallery dan bahaya.
 Pada folder “gallery”:
 Membuat folder dengan prefix "wm." Dalam folder ini, setiap gambar yang dipindahkan ke dalamnya akan diberikan watermark bertuliskan inikaryakita.id. 
-
 			Ex: "mv ikk.jpeg wm-foto/" 
    
 Output: 
@@ -536,8 +535,14 @@ int main(int argc, char *argv[]) {
   ```
   
 ### Dokumentasi
+- Ouput di terminal
+  ![WhatsApp Image 2024-05-24 at 23 20 44_4ff1d84d](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/151147728/d0cf9e8a-b5b2-40c9-a061-619ad672a106)
 
+- Isi folder 'gallery' yang semua fotonya sudah dipindah ke folder 'wm' dan sudah diberi watermark
+  ![WhatsApp Image 2024-05-24 at 23 20 44_464b3c76](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/151147728/e598c4ad-6004-4cb3-8ce4-bb3b246fc0da)
 
+- Isi folder 'bahaya' dan isi file baru yang sudah direverse
+  ![WhatsApp Image 2024-05-24 at 23 20 44_39533fc4](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/151147728/006d31ec-8759-45bc-af41-5f479273a43c)
 
 ## Soal 2
 
