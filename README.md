@@ -1651,9 +1651,18 @@ Dengan menggunakan FUSE, program ini dapat menyajikan direktori sumber ```source
 ![Screenshot from 2024-05-24 00-38-26](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/2e144df5-dba5-47ad-83ae-32d74999b77a)    
 ![Screenshot from 2024-05-24 00-38-34](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/297f46bf-df4e-49e9-b822-ed24f31a52a1)
 
+- note : ada pecahan ara.jpeg sebanyak 140 karena ukurannya 1,4MB/1400kB (1400:10 = 140 pecahan)
+
 5. Melakukan penghapusan file ```ara.jpeg``` di folder ```bebas/```. Semua pecahannya yang ada di ```relics/``` juga ikut terhapus.
 
 ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/4e538d61-03b1-46d9-b40d-856e1db7c59a)
 
-6. samba
+6. Salin isi direktori ```bebas/``` ke ```report/```. Membagikan direktori ```report/``` menggunakan Samba File Server.
+
+![Screenshot from 2024-05-25 23-01-48](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/8a869260-6c97-4549-96d4-749301a89241)
+
+7. Hasil share direktori ```report/``` menggunakan Samba File Server.
+
+![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/110287409/985a6fb8-0a8b-41dc-a44d-fd785c7cf2eb)
+
 
