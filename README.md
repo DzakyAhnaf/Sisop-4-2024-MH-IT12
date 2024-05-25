@@ -548,6 +548,444 @@ int main(int argc, char *argv[]) {
 
 Dikerjakan oleh Adlya Isriena Aftarisya (5027231066)
 
+### Deskripsi Soal
+
+Sang CEO ingin melakukan tes keamanan pada folder sensitif Ini Karya Kita. Karena Teknologi Informasi merupakan departemen dengan salah satu fokus di Cyber Security, maka dia kembali meminta bantuan mahasiswa Teknologi Informasi angkatan 2023 untuk menguji dan mengatur keamanan pada folder sensitif tersebut menggunakan FUSE
+
+## Pengerjaan
+
+### Struktur folder
+
+```c
+soal
+├── mount
+├── sensitif
+│   ├── pesan
+│   │   ├── enkripsi_rot13.txt
+│   │   ├── halo.txt
+│   │   ├── new-hex.txt
+│   │   ├── notes-base64.txt
+│   │   ├── rev-text.txt
+│   └── rahasia-berkas
+│       ├── final.sh
+│       └── tulisan.txt
+└── pastibisa.c
+
+```
+
+pertama-tama, buat folder mount terlebih dahulu karena FUSE memerlukan mount point untuk mengoperasikan virtual filesystem.
+
+### Variabel Global
+
+```c
+const char *base_dir = "/Users/tarisa/smt-2/sisop/shift4/2/sensitif";
+const char *log_file = "/Users/tarisa/smt-2/sisop/shift4/2/logs-fuse.log";
+const char *password = "sisopez";
+```
+
+Variabel global ini menentukan:
+
+- `base_dir`: Direktori dasar yang digunakan sebagai root dari sistem file FUSE.
+- `log_file`: Lokasi file log di mana operasi file akan dicatat.
+- `password`: Kata sandi untuk mengakses direktori rahasia.
+
+### Fungsi main
+
+```c
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <mountpoint>\n", argv[0]);
+        return 1;
+    }
+    return fuse_main(argc, argv, &xmp_oper);
+}
+```
+
+Fungsi main akan berfungsi sebagai berrirkutt:
+
+1. Memeriksa apakah argumen mount point diberikan (minimal 2 argumen diperlukan: nama program dan mount point).
+2. Jika tidak diberikan, mencetak pesan penggunaan dan keluar dengan kode kesalahan 1.
+3. Jika argumen diberikan, memanggil `fuse_main` untuk memulai sistem file FUSE dengan operasi yang telah didefinisikan dalam `xmp_oper`.
+
+### Fungsi “xmp_getattr”
+
+```c
+static int xmp_getattr(const char *path, struct stat *stbuf) {
+    char fpath[512];
+    snprintf(fpath, sizeof(fpath), "%s%s", base_dir, path);
+    int res = lstat(fpath, stbuf);
+    if (res == -1) {
+        return -errno;
+    }
+    return 0;
+}
+```
+
+Fungsi ini digunakan untuk mendapatkan atribut dari file atau direktori yang diberikan pada `path` seperti berikut:
+
+1. Membentuk path lengkap dengan menggabungkan `base_dir` dan `path` yang diberikan
+2. Memanggil `lstat` untuk mendapatkan atribut file/direktori dan menyimpannya di `stbuf`
+3. Jika `lstat` gagal (mengembalikan -1), mengembalikan nilai kesalahan negatif dari `errno`
+4. Jika berhasil, mengembalikan 0.
+
+### **Fungsi “xmp_readdir”**
+
+```c
+static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
+    char fpath[512];
+    snprintf(fpath, sizeof(fpath), "%s%s", base_dir, path);
+
+    DIR *dp = opendir(fpath);
+    if (dp == NULL) {
+        createLog("ERROR", "opendir", strerror(errno));
+        return -errno;
+    }
+
+    struct dirent *de;
+    int res = 0;
+    if (strncmp(path, "/rahasia",8) == 0) {
+        if (!checkPass()) {
+            createLog("FAILED", "access", "Attempt to access rahasia folder with incorrect password");
+            closedir(dp);
+            return -EACCES;
+        }
+    }
+
+    while ((de = readdir(dp)) != NULL) {
+        struct stat st;
+        memset(&st, 0, sizeof(st));
+        st.st_ino = de->d_ino;
+        st.st_mode = de->d_type << 12;
+        res = filler(buf, de->d_name, &st, 0);
+        if (res != 0) {
+            createLog("ERROR", "filler", "Buffer full or error");
+            break;
+        }
+    }
+
+    closedir(dp);
+    return 0;
+}
+
+```
+
+Fungsi ini membaca direktori pada `path` dan mengisi buffer `buf` dengan informasi direktori, seperti berikut:
+
+1. Membentuk path lengkap dengan menggabungkan `base_dir` dan `path` yang diberikan.
+2. Membuka direktori dengan `opendir`. Jika gagal, mencatat log kesalahan dan mengembalikan nilai kesalahan negatif dari `errno`.
+3. Jika direktori adalah `/rahasia`, maka memeriksa kata sandi dengan `checkPass`. Jika kata sandi salah, mencatat log kegagalan, menutup direktori, dan mengembalikan kesalahan akses (`EACCES`).
+4. Membaca isi direktori dengan `readdir` dalam loop dan mengisi buffer dengan `filler`.
+5. Jika `filler` gagal, mencatat log kesalahan dan menghentikan loop.
+6. Menutup direktori dan mengembalikan 0 jika berhasil.
+
+### Fungsi “xmp_read”
+
+```c
+static int xmp_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    char fpath[512];
+    snprintf(fpath, sizeof(fpath), "%s%s", base_dir, path);
+
+    if (strncmp(path, "/rahasia", 8) == 0) {
+        if (!checkPass()) {
+            createLog("FAILED", "access", "Attempt to access rahasia folder with incorrect password");
+            return -EACCES; 
+        } else {
+            createLog("SUCCESS", "access", "Attempt to access rahasia folder with correct password");
+        }
+    }
+
+    int fd = open(fpath, O_RDONLY);
+    if (fd == -1) {
+        return -errno;
+    }
+
+    char decoded[1024];
+    int res = pread(fd, decoded, sizeof(decoded) - 1, offset);
+    if (res == -1) {
+        res = -errno;
+        createLog("FAILED", "readFile", strerror(errno));
+    } else {
+        decoded[res] = '\0';
+
+        if (strstr(path, "/pesan/") != NULL) {
+            if (strstr(path, "base64") != NULL) {
+                decode_base64(decoded, buf);
+                createLog("SUCCESS", "decodeFile", "Base64");
+            } else if (strstr(path, "rot13") != NULL) {
+                decode_rot13(decoded, buf);
+                createLog("SUCCESS", "decodeFile", "ROT13");
+            } else if (strstr(path, "hex") != NULL) {
+                char *decoded_hex = decode_hex(decoded);
+                strncpy(buf, decoded_hex, size);
+                free(decoded_hex);
+                createLog("SUCCESS", "decodeFile", "Hex");
+            } else if (strstr(path, "rev") != NULL) {
+                char *decoded_rev = reverse(decoded);
+                strncpy(buf, decoded_rev, size);
+                free(decoded_rev);
+                createLog("SUCCESS", "decodeFile", "Reverse");
+            } else {
+                strncpy(buf, decoded, size);
+                createLog("SUCCESS", "readFile", path);
+            }
+        } else {
+            strncpy(buf, decoded, size);
+        }
+    }
+
+    close(fd);
+    return res;
+}
+
+```
+
+Fungsi ini membaca isi file pada `path` dan mendekode isinya jika diperlukan. 
+
+1. Membentuk path lengkap dengan menggabungkan `base_dir` dan `path` yang diberikan.
+2. Jika path adalah `/rahasia`, maka memeriksa kata sandi dengan `checkPass`. Jika kata sandi salah, mencatat log kegagalan dan mengembalikan kesalahan akses (`EACCES`). Jika benar, mencatat log keberhasilan.
+3. Membuka file dengan `open` dalam mode baca saja (`O_RDONLY`). Jika gagal, mengembalikan nilai kesalahan negatif dari `errno`.
+4. Membaca isi file dengan `pread` ke buffer `decoded`. Jika gagal, mencatat log kesalahan dan mengembalikan nilai kesalahan.
+5. Jika membaca berhasil, mendekode isi file jika berada di dalam direktori `/pesan/`:
+    - Jika file adalah `base64`, memanggil `decode_base64`.
+    - Jika file adalah `rot13`, memanggil `decode_rot13`.
+    - Jika file adalah `hex`, memanggil `decode_hex`.
+    - Jika file adalah `rev`, memanggil `reverse`.
+6. Menutup file dan mengembalikan hasil pembacaan.
+
+### Fungsi decode
+
+1. decode_base64
+    
+    ```c
+    void decode_base64(const char *input, char *output) {
+        static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        int i, j = 0;
+        unsigned char k;
+        int len = strlen(input);
+    
+        for (i = 0; i < len; i += 4) {
+            k = strchr(base64_chars, input[i]) - base64_chars;
+            k = (k << 2) | ((strchr(base64_chars, input[i + 1]) - base64_chars) >> 4);
+            output[j++] = k;
+    
+            if (input[i + 2] != '=') {
+                k = ((strchr(base64_chars, input[i + 1]) - base64_chars) << 4) | ((strchr(base64_chars, input[i + 2]) - base64_chars) >> 2);
+                output[j++] = k;
+            }
+    
+            if (input[i + 3] != '=') {
+                k = ((strchr(base64_chars, input[i + 2]) - base64_chars) << 6) | (strchr(base64_chars, input[i + 3]) - base64_chars);
+                output[j++] = k;
+            }
+        }
+    
+        output[j] = '\0';
+    }
+    
+    ```
+    
+    Fungsi ini akan digunakan untuk mendekode string base64 menjadi string asli yang dapat dibac. Fungsi ini mengonversi kembali ke data biner asli dengan memetakan setiap karakter base64 ke nilai biner yang sesuai dan menyusunnya kembali.
+    
+2. decode_rot13
+    
+    ```c
+    void *decode_rot13(const char *data, char *decoded) {
+        int i;
+        int len = strlen(data);
+        for (i = 0; i < len; i++) {
+            if (isalpha(data[i])) {
+                if (islower(data[i])) {
+                    decoded[i] = ((data[i] - 'a' + 13) % 26) + 'a';
+                } else {
+                    decoded[i] = ((data[i] - 'A' + 13) % 26) + 'A';
+                }
+            } else {
+                decoded[i] = data[i];
+            }
+        }
+        decoded[len] = '\0';
+        return decoded;
+    }
+    
+    ```
+    
+    Fungsi ini digunakan untuk mendekode string yang dienkripsi menggunakan ROT13.  Fungsi ini mengembalikan string yang telah dikodekan ROT13 (menggantikan setiap huruf dengan huruf yang berada 13 posisi setelahnya dalam alfabet) ke bentuk aslinya.
+    
+3. decode_hex
+    
+    ```c
+    char *decode_hex(const char *data) {
+        size_t len = strlen(data) / 2;
+        char *decoded = malloc(len + 1);
+        for (size_t i = 0; i < len; i++) {
+            sscanf(data + 2 * i, "%2hhx", &decoded[i]);
+        }
+        decoded[len] = '\0';
+        return decoded;
+    }
+    
+    ```
+    
+    Fungsi ini mendekode string yang dienkripsi dengan hex. Fungsi ini mengonversi kembali setiap pasangan karakter hex ke byte asli dan menyusunnya kembali menjadi string asli.
+    
+4. reverse
+    
+    ```c
+    char *reverse(const char *data) {
+        size_t len = strlen(data);
+        char *reversed = malloc(len + 1);
+        for (size_t i = 0; i < len; i++) {
+            reversed[i] = data[len - 1 - i];
+        }
+        reversed[len] = '\0';
+        return reversed;
+    }
+    
+    ```
+    
+    Fungsi ini membalikkan urutan karakter dalam string. Fungsi ini berguna untuk mendekode pesan yang telah dienkripsi dengan metode pembalikan karakter.
+    
+
+### Fungsi createLog
+
+```c
+void createLog(const char *status, const char *tag, const char *info) {
+    FILE *log_fp = fopen(log_file, "a");
+    if (log_fp) {
+        time_t now = time(NULL);
+        struct tm *t = localtime(&now);
+        fprintf(log_fp, "[%s]::%02d/%02d/%04d-%02d:%02d:%02d::[%s]::[%s]\n",
+                status,
+                t->tm_mday, t->tm_mon + 1, t->tm_year + 1900,
+                t->tm_hour, t->tm_min, t->tm_sec,
+                tag, info);
+        fclose(log_fp);
+    }
+}
+
+```
+
+Fungsi ini mencatat log ke file log dengan format yang telah ditentukan. Setiap entri log mencakup:
+
+- Status (misalnya, "SUCCESS" atau "FAILED").
+- Tag untuk mengidentifikasi operasi atau kejadian.
+- Informasi tambahan tentang kejadian.
+- Timestamp saat kejadian terjadi.
+
+### Fungsi checkPass
+
+```c
+int checkPass() {
+    char input[256];
+    printf("Enter password: ");
+    scanf("%s", input);
+    if (strcmp(input, password) == 0) {
+        createLog("SUCCESS", "access", "Password correct");
+        return 1;
+    } else {
+        createLog("FAILED", "access", "Incorrect password attempt");
+        return 0;
+    }
+}
+
+```
+
+Fungsi ini meminta kata sandi dari pengguna dan memeriksa apakah kata sandi yang diberikan cocok dengan kata sandi yang telah ditentukan. Jika cocok, fungsi ini mencatat log keberhasilan dan mengembalikan 1. Jika tidak cocok, fungsi ini mencatat log kegagalan dan mengembalikan 0.
+
+### Struktur fuse_operation
+
+```c
+static struct fuse_operations xmp_oper = {
+   .getattr = xmp_getattr,
+   .readdir = xmp_readdir,
+   .read = xmp_read,
+};
+
+```
+
+Struktur ini mengikat fungsi yang kita definisikan dengan operasi FUSE yang sesuai. Misalnya:
+
+- `getattr` mengikat ke `xmp_getattr`, yang bertanggung jawab untuk mendapatkan atribut file.
+- `readdir` mengikat ke `xmp_readdir`, yang bertanggung jawab untuk membaca direktori.
+- `read` mengikat ke `xmp_read`, yang bertanggung jawab untuk membaca isi file.
+
+## output
+
+1. sebelum dan sesudah run program
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/85a3e3e9-c55b-475b-b83a-f76979fc627f)
+   sesudah di run, folder mount akan berisikan virtual filesystem hasil FUSE
+
+2. mencoba untuk mengakses isi folder rahasia-berkas
+    
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/bc640efe-d634-4ca4-b973-e5ef2512361b)
+    
+3. Perbedaan jika benar input password dan salah input password
+    
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/c15dd34b-a93a-4b46-883d-ed9c01cbd577)
+    
+    jika benar, permission akan dibuka dan menampilkan isi file. Sedangkan, jika password salah, permission akan ditolak dan terminal sebelah kiri berhenti meminta input password.
+    
+4. Hasil decode enkripsi_rot13
+    
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/393f54ab-9667-4fbf-9751-29decaf5aaf2)
+    
+5. Hasil decode new-hex.txt
+    
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/6c4a86b9-e679-4b8f-b720-442e87e21811)
+    
+6. Hasil decode notes-base64.txt
+    
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/e5b58107-f381-4ac1-b124-351aeb67957d)
+    
+7. Hasil decode rev-text.txt
+    
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/866acb9c-b9a7-4024-b3f8-d5c75be9e63f)
+    
+8. Isi file halo.txt
+    
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/12dff15a-5efe-41d4-86c0-30138a52395c)
+    
+    isi file tidak ada yang berubah karena nama file tidak termasuk ke dalam jenis file yang harus di decode isi nya.
+    
+9. Isi folder awal
+    
+   ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/260fd087-db84-4bb5-b975-cb30466729e3)
+    
+    isi dari folder pesan di folder sensitif masih berbentuk acak walaupun sudah berhasil run program.
+    
+10. struktur foldeer akhir:
+    
+    ```c
+    soal2
+    ├── mount
+    │   ├── pesan
+    │   │   ├── enkripsi_rot13.txt
+    │   │   ├── halo.txt
+    │   │   ├── new-hex.txt
+    │   │   ├── notes-base64.txt
+    │   │   ├── rev-text.txt
+    │   └── rahasia-berkas
+    │       ├── final.sh
+    │       └── tulisan.txt
+    ├── sensitif
+    │   ├── pesan
+    │   │   ├── enkripsi_rot13.txt
+    │   │   ├── halo.txt
+    │   │   ├── new-hex.txt
+    │   │   ├── notes-base64.txt
+    │   │   ├── rev-text.txt
+    │   └── rahasia-berkas
+    │       ├── final.sh
+    │       └── tulisan.txt
+    ├── logs-fuse.log
+    └── pastibisa.c
+    
+    ```
+    
+11. isi logs-fuse.log
+    
+    ![image](https://github.com/DzakyAhnaf/Sisop-4-2024-MH-IT12/assets/164857172/982d0195-4541-4825-bab1-a8ef611473ea)
+
 ## Soal 3
 
 Dikerjakan oleh Muhammad Dzaky Ahnaf (5027231039)
